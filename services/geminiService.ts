@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { UserProfile } from "../types";
+import { UserProfile } from "../types.ts";
 
 export const generateDailyCase = async (userRole: string): Promise<string> => {
   try {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Patient, DrugOrder, Order, UserProfile, UserRole, AuditLogEntry } from '../types';
-import { db } from '../services/db';
+import { Patient, DrugOrder, Order, UserProfile, UserRole, AuditLogEntry } from '../types.ts';
+import { db } from '../services/db.ts';
 import { 
   FileText, Clock, UserPlus, Calendar, ChevronLeft, Save, X, 
   Activity, User, Eye, Pill, Syringe, ClipboardList, Plus, Trash2, Search, CheckSquare,

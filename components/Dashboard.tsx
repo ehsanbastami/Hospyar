@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Page, UserProfile, UserRole } from '../types';
+import { Page, UserProfile, UserRole } from '../types.ts';
 import { ArrowLeft, Stethoscope, Wallet, FileText, Sparkles } from 'lucide-react';
-import { generateDailyCase } from '../services/geminiService';
+import { generateDailyCase } from '../services/geminiService.ts';
 
 interface DashboardProps {
   user: UserProfile;

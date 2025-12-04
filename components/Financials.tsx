@@ -1,5 +1,5 @@
 import React from 'react';
-import { FinancialRecord } from '../types';
+import { FinancialRecord } from '../types.ts';
 import { Printer, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 

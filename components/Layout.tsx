@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { 
   Home, LayoutGrid, Calendar, Wallet, MessageSquare, FolderOpen, 
   Settings, LogOut, Menu, Search, Bell, User
 } from 'lucide-react';
-import { Page, UserProfile, UserRole } from '../types';
+import { Page, UserProfile, UserRole } from '../types.ts';
 
 interface LayoutProps {
   currentPage: Page;

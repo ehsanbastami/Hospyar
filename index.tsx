@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import Wards from './components/Wards';
-import CalendarPage from './components/Calendar';
-import Financials from './components/Financials';
-import Messages from './components/Messages';
-import Records from './components/Records';
-import { Page, UserProfile, Patient, CalendarEvent, FinancialRecord, UserRole } from './types';
-import { searchApp } from './services/geminiService';
-import { db } from './services/db';
+import Layout from './components/Layout.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import Wards from './components/Wards.tsx';
+import CalendarPage from './components/Calendar.tsx';
+import Financials from './components/Financials.tsx';
+import Messages from './components/Messages.tsx';
+import Records from './components/Records.tsx';
+import { Page, UserProfile, Patient, CalendarEvent, FinancialRecord, UserRole } from './types.ts';
+import { searchApp } from './services/geminiService.ts';
+import { db } from './services/db.ts';
 import { X, Loader, Database } from 'lucide-react';
 
 const App = () => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Patient } from '../types';
-import { db } from '../services/db';
+import { Patient } from '../types.ts';
+import { db } from '../services/db.ts';
 import { Plus, Archive, ArrowRightLeft, Activity, Eye, X, Save } from 'lucide-react';
 
 interface WardsProps {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CalendarEvent } from '../types';
-import { db } from '../services/db';
+import { CalendarEvent } from '../types.ts';
+import { db } from '../services/db.ts';
 import { Plus, X, ChevronLeft, ChevronRight, Clock, Trash2, Edit2, Check } from 'lucide-react';
 
 interface CalendarProps {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage } from '../types';
+import { ChatMessage } from '../types.ts';
 import { Send, User, Bot, MoreVertical, Phone, Video, Plus, Search, X } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 

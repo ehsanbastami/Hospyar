@@ -1,5 +1,5 @@
-import { supabase } from './supabaseClient';
-import { Patient, CalendarEvent, FinancialRecord } from '../types';
+import { supabase } from './supabaseClient.ts';
+import { Patient, CalendarEvent, FinancialRecord } from '../types.ts';
 
 export const db = {
   // --- Patients ---

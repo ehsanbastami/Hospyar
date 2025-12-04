@@ -6,13 +6,14 @@
     <title>Hospyar | دستیار هوشمند پزشکی</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Babel Standalone for in-browser JSX/TS transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <script>
-      // Polyfill for process.env to prevent "process is not defined" crash in browser
+      // Polyfill for process.env
       window.process = {
         env: {
-          // This prevents the crash. In a real build, this is replaced by the bundler.
-          // If you have a Netlify environment variable, it needs to be injected here during build,
-          // or you can set a fallback here for testing.
           API_KEY: '' 
         }
       };
@@ -45,7 +46,6 @@
         background-color: #0f1014;
         color: #e2e8f0;
       }
-      /* Custom scrollbar for dark theme */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -78,6 +78,7 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <!-- Note: type="text/babel" and data-type="module" are required for Babel -->
+    <script type="text/babel" data-type="module" src="/index.tsx"></script>
   </body>
 </html>
