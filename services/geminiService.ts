@@ -1,10 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { UserProfile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const generateDailyCase = async (userRole: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
     const complexity = userRole === 'Specialist' ? 'complex, rare, and detailed' : 'educational and fundamental';
     
@@ -37,6 +36,7 @@ export const generateDailyCase = async (userRole: string): Promise<string> => {
 
 export const searchApp = async (query: string, dataContext: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     // This function simulates a "smart search" that could interpret natural language
     // In a real app, this would query a vector DB. Here we just ask Gemini to summarize findings based on mock context.
     const response = await ai.models.generateContent({
