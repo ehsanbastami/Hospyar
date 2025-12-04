@@ -1,0 +1,5 @@
+{
+  "name": "Hospyar",
+  "description": "A comprehensive, AI-powered medical dashboard for Iranian doctors and students using the Gemini API.",
+  "requestFramePermissions": []
+}
