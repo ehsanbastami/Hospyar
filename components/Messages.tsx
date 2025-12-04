@@ -38,6 +38,23 @@ const Messages: React.FC = () => {
   const activeContact = ALL_CONTACTS.find(c => c.id === activeContactId) || ALL_CONTACTS[0];
   const activeMessages = conversations[activeContactId] || [];
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('hospyar_chats');
+    if (saved) {
+      try {
+        setConversations(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse chats", e);
+      }
+    }
+  }, []);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('hospyar_chats', JSON.stringify(conversations));
+  }, [conversations]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };

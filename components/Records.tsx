@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Patient, DrugOrder, Order, UserProfile, UserRole, AuditLogEntry } from '../types';
+import { db } from '../services/db';
 import { 
   FileText, Clock, UserPlus, Calendar, ChevronLeft, Save, X, 
   Activity, User, Eye, Pill, Syringe, ClipboardList, Plus, Trash2, Search, CheckSquare,
@@ -81,6 +81,9 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
 
     setPatients(patients.map(p => p.id === updatedPatient.id ? patientWithLog : p));
     setSelectedPatient(patientWithLog);
+    
+    // Persist to Supabase
+    db.upsertPatient(patientWithLog);
   };
 
   const addDrugHistory = () => {

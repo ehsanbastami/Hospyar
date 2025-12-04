@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CalendarEvent } from '../types';
+import { db } from '../services/db';
 import { Plus, X, ChevronLeft, ChevronRight, Clock, Trash2, Edit2, Check } from 'lucide-react';
 
 interface CalendarProps {
@@ -34,12 +35,14 @@ const CalendarPage: React.FC<CalendarProps> = ({ events, setEvents }) => {
       type: 'Meeting'
     };
     setEvents([...events, newEvent]);
+    db.upsertEvent(newEvent);
     setNewEventTitle('');
   };
 
   const deleteEvent = (id: string) => {
     if(window.confirm('حذف شود؟')) {
         setEvents(events.filter(e => e.id !== id));
+        db.deleteEvent(id);
     }
   };
 
@@ -49,7 +52,12 @@ const CalendarPage: React.FC<CalendarProps> = ({ events, setEvents }) => {
   };
 
   const saveEdit = (id: string) => {
-    setEvents(events.map(e => e.id === id ? { ...e, title: editTitle } : e));
+    const updated = events.find(e => e.id === id);
+    if (!updated) return;
+    const newEvent = { ...updated, title: editTitle };
+
+    setEvents(events.map(e => e.id === id ? newEvent : e));
+    db.upsertEvent(newEvent);
     setEditingEventId(null);
   };
 

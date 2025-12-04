@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import Layout from './components/Layout';
@@ -10,19 +9,32 @@ import Messages from './components/Messages';
 import Records from './components/Records';
 import { Page, UserProfile, Patient, CalendarEvent, FinancialRecord, UserRole } from './types';
 import { searchApp } from './services/geminiService';
-import { X, Loader } from 'lucide-react';
+import { db } from './services/db';
+import { X, Loader, Database } from 'lucide-react';
 
 const App = () => {
   // --- Global State ---
   const [page, setPage] = useState<Page>(Page.Home);
+  const [loading, setLoading] = useState(true);
+  const [dbConnected, setDbConnected] = useState(false);
   
-  const [user, setUser] = useState<UserProfile>({
-    name: 'دکتر احسان بسطامی',
-    role: UserRole.MD_Specialist,
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
+  // Initialize User from LocalStorage to persist role across reloads
+  const [user, setUser] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('hospyar_user');
+    return saved ? JSON.parse(saved) : {
+      name: 'دکتر احسان بسطامی',
+      role: UserRole.MD_Specialist,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
+    };
   });
 
-  const [patients, setPatients] = useState<Patient[]>([
+  // Save User to LocalStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('hospyar_user', JSON.stringify(user));
+  }, [user]);
+
+  // Mock Data for Initial Seed
+  const MOCK_PATIENTS: Patient[] = [
     {
       id: 'p1', name: 'علی رضایی', age: 63, ward: 'ICU', diagnosis: 'Stone Passage',
       admissionDate: '1404/04/12', status: 'Admitted',
@@ -42,7 +54,7 @@ const App = () => {
       primaryDiagnosis: 'Renal Calculi',
       orders: [
         { id: 'o1', type: 'Imaging', name: 'CT KUB', status: 'Completed', date: '1404/04/12', prescribedBy: 'دکتر بسطامی', completedBy: 'پرستار رضایی' },
-        { id: 'o2', type: 'Drug', name: 'Morphine', details: '5mg IV stat', status: 'Completed', date: '1404/04/12', prescribedBy: 'دکتر بسطامی', completedBy: 'پرستار رضایی' }
+        { id: 'o2', type: 'Drug', name: 'Morphine', details: '5mg IV stat', dosage: '5mg', route: 'IV', frequency: 'Stat', status: 'Completed', date: '1404/04/12', prescribedBy: 'دکتر بسطامی', completedBy: 'پرستار رضایی' }
       ],
       progressNotes: [
         { id: 'pn1', date: '1404/04/13', note: 'درد بیمار با مسکن کنترل شد. منتظر جواب CT.', author: 'دکتر بسطامی' }
@@ -67,23 +79,70 @@ const App = () => {
       differentialDiagnosis: ['Bacterial Pneumonia', 'Viral Pneumonia', 'TB'],
       primaryDiagnosis: 'CAP (Community Acquired Pneumonia)',
       orders: [
-        { id: 'o3', type: 'Drug', name: 'Ceftriaxone', details: '1g IV BD', status: 'Pending', date: '1404/04/14', prescribedBy: 'دکتر بسطامی' }
+        { id: 'o3', type: 'Drug', name: 'Ceftriaxone', details: '1g IV BD', dosage: '1g', route: 'IV', frequency: 'BD', status: 'Pending', date: '1404/04/14', prescribedBy: 'دکتر بسطامی' }
       ],
       progressNotes: [],
       auditLogs: []
     }
-  ]);
+  ];
 
-  const [events, setEvents] = useState<CalendarEvent[]>([
+  const MOCK_EVENTS: CalendarEvent[] = [
     { id: 'e1', title: 'ویزیت بخش ICU', date: '1404/04/15', type: 'Visit' },
     { id: 'e2', title: 'جلسه با ریاست بیمارستان', date: '1404/04/18', type: 'Meeting' },
-  ]);
+  ];
 
-  const [financials, setFinancials] = useState<FinancialRecord[]>([
+  const MOCK_FINANCIALS: FinancialRecord[] = [
     { id: 'f1', title: 'کارانه خرداد ماه', amount: 45000000, type: 'Income', date: '1404/04/01' },
     { id: 'f2', title: 'خرید تجهیزات معاینه', amount: 12000000, type: 'Outcome', date: '1404/04/05' },
     { id: 'f3', title: 'ویزیت مطب', amount: 8500000, type: 'Income', date: '1404/04/10' },
-  ]);
+  ];
+
+  const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
+  const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS);
+  const [financials, setFinancials] = useState<FinancialRecord[]>(MOCK_FINANCIALS);
+
+  // --- Supabase Integration ---
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        setLoading(true);
+        // 1. Fetch Patients
+        const dbPatients = await db.getPatients();
+        if (dbPatients.length > 0) {
+          setPatients(dbPatients);
+          setDbConnected(true);
+        } else {
+          // Seed DB if empty
+          console.log('DB empty, seeding mock patients...');
+          await Promise.all(MOCK_PATIENTS.map(p => db.upsertPatient(p)));
+          setDbConnected(true);
+        }
+
+        // 2. Fetch Events
+        const dbEvents = await db.getEvents();
+        if (dbEvents.length > 0) {
+          setEvents(dbEvents);
+        } else {
+          await Promise.all(MOCK_EVENTS.map(e => db.upsertEvent(e)));
+        }
+
+        // 3. Fetch Financials
+        const dbFinancials = await db.getFinancials();
+        if (dbFinancials.length > 0) {
+          setFinancials(dbFinancials);
+        } else {
+           await db.seedFinancials(MOCK_FINANCIALS);
+        }
+
+      } catch (error) {
+        console.error("Failed to connect to Supabase:", error);
+        // Fallback to local state (MOCK_PATIENTS) which is already set initial
+      } finally {
+        setLoading(false);
+      }
+    };
+    initData();
+  }, []);
 
   // --- Search Logic ---
   const [searchResult, setSearchResult] = useState<string | null>(null);
@@ -119,6 +178,15 @@ const App = () => {
 
   // --- Render Page ---
   const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+           <Loader className="animate-spin mb-4 text-primary" size={48} />
+           <p>درحال دریافت اطلاعات از پایگاه داده...</p>
+        </div>
+      );
+    }
+
     switch (page) {
       case Page.Home:
         return <Dashboard user={user} setPage={setPage} />;
@@ -145,6 +213,14 @@ const App = () => {
       setUser={setUser} 
       onSearch={handleSearch}
     >
+      {/* DB Connection Indicator */}
+      {dbConnected && !loading && (
+          <div className="fixed bottom-4 left-4 z-50 bg-green-500/10 text-green-400 border border-green-500/30 px-3 py-1.5 rounded-full text-xs flex items-center gap-2 print:hidden">
+            <Database size={12} />
+            متصل به Supabase
+          </div>
+      )}
+
       {renderContent()}
 
       {/* Global Search Result Modal */}

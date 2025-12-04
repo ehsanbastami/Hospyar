@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { Patient } from '../types';
+import { db } from '../services/db';
 import { Plus, Archive, ArrowRightLeft, Activity, Eye, X, Save } from 'lucide-react';
 
 interface WardsProps {
@@ -16,12 +16,22 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
   const filteredPatients = patients.filter(p => p.ward === activeWard && p.status === 'Admitted');
 
   const handleTransfer = (id: string, newWard: string) => {
-    setPatients(patients.map(p => p.id === id ? { ...p, ward: newWard } : p));
+    const p = patients.find(p => p.id === id);
+    if (!p) return;
+    const updated = { ...p, ward: newWard };
+    
+    setPatients(patients.map(p => p.id === id ? updated : p));
+    db.upsertPatient(updated);
   };
 
   const handleDischarge = (id: string) => {
     if (window.confirm('آیا از بایگانی پرونده این بیمار اطمینان دارید؟')) {
-       setPatients(patients.map(p => p.id === id ? { ...p, status: 'Discharged' } : p));
+       const p = patients.find(p => p.id === id);
+       if (!p) return;
+       const updated = { ...p, status: 'Discharged' as const };
+       
+       setPatients(patients.map(p => p.id === id ? updated : p));
+       db.upsertPatient(updated);
     }
   };
 
@@ -49,6 +59,7 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
         auditLogs: []
     };
     setPatients([newPatient, ...patients]);
+    db.upsertPatient(newPatient);
   };
 
   return (
