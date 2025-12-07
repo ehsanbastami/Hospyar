@@ -133,6 +133,28 @@ export interface ChatMessage {
   time: string;
 }
 
+export interface DailyCase {
+  title: string;
+  demographics: string;
+  chiefComplaint: string;
+  presentIllness: string;
+  histories: {
+    pmh: string;
+    psh: string;
+    dh: string;
+    fh: string;
+    sh: string;
+  };
+  ros: string;
+  physicalExam: string;
+  problemList: string[];
+  differentialDiagnosis: string[];
+  labData: string;
+  finalDiagnosis: string;
+  treatment: string;
+  followUp: string;
+}
+
 export enum Page {
   Home = 'Home',
   Wards = 'Wards',

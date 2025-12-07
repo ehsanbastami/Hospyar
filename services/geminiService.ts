@@ -1,44 +1,80 @@
-import { GoogleGenAI } from "@google/genai";
-import { UserProfile } from "../types.ts";
+import { GoogleGenAI, Type } from "@google/genai";
+import { UserProfile, DailyCase } from "../types.ts";
 
-export const generateDailyCase = async (userRole: string): Promise<string> => {
+export const generateDailyCase = async (userRole: string): Promise<DailyCase | null> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
-    const complexity = userRole === 'Specialist' ? 'complex, rare, and detailed' : 'educational and fundamental';
+    const complexity = userRole.includes('Specialist') ? 'complex, rare, and challenging' : 'educational and fundamental';
     
     const prompt = `
-      You are a medical professor. Write a "Case of the Day" in Persian (Farsi) for a medical dashboard.
-      The user is a ${userRole}, so the case should be ${complexity}.
-      Structure:
-      1. Patient Demographics (Age, Sex).
-      2. Chief Complaint.
-      3. History of Present Illness (HPI).
-      4. Key Physical Exam Findings.
-      5. Diagnostic Challenge or Question at the end.
+      You are a medical professor. Generate a detailed medical case study in Persian (Farsi) for a ${userRole}.
+      The case should be ${complexity}.
       
-      Do not use Markdown formatting like bolding with asterisks too heavily, keep it readable as a paragraph or two.
-      Keep it under 150 words.
-      The output MUST be in Persian.
+      Return a JSON object with the following structure:
+      - title: A short, professional title for the case.
+      - demographics: e.g., "آقای ۵۴ ساله"
+      - chiefComplaint: The main reason for visit.
+      - presentIllness: A detailed history of present illness.
+      - histories: An object with fields 'pmh', 'psh', 'dh', 'fh', 'sh' (all strings).
+      - ros: A detailed review of systems.
+      - physicalExam: Detailed physical examination findings.
+      - problemList: An array of strings listing key problems.
+      - differentialDiagnosis: An array of strings listing DDx.
+      - labData: Relevant laboratory and imaging results.
+      - finalDiagnosis: The confirmed diagnosis.
+      - treatment: Management and treatment plan.
+      - followUp: Prognosis and follow-up plan.
     `;
 
     const response = await ai.models.generateContent({
       model: model,
       contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            demographics: { type: Type.STRING },
+            chiefComplaint: { type: Type.STRING },
+            presentIllness: { type: Type.STRING },
+            histories: {
+              type: Type.OBJECT,
+              properties: {
+                pmh: { type: Type.STRING },
+                psh: { type: Type.STRING },
+                dh: { type: Type.STRING },
+                fh: { type: Type.STRING },
+                sh: { type: Type.STRING },
+              }
+            },
+            ros: { type: Type.STRING },
+            physicalExam: { type: Type.STRING },
+            problemList: { type: Type.ARRAY, items: { type: Type.STRING } },
+            differentialDiagnosis: { type: Type.ARRAY, items: { type: Type.STRING } },
+            labData: { type: Type.STRING },
+            finalDiagnosis: { type: Type.STRING },
+            treatment: { type: Type.STRING },
+            followUp: { type: Type.STRING },
+          }
+        }
+      }
     });
 
-    return response.text || 'خطا در دریافت مورد روزانه.';
+    if (response.text) {
+      return JSON.parse(response.text) as DailyCase;
+    }
+    return null;
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "اتصال به هوش مصنوعی برقرار نشد. لطفاً کلید API را بررسی کنید.";
+    return null;
   }
 };
 
 export const searchApp = async (query: string, dataContext: string): Promise<string> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // This function simulates a "smart search" that could interpret natural language
-    // In a real app, this would query a vector DB. Here we just ask Gemini to summarize findings based on mock context.
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
