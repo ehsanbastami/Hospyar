@@ -91,6 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setPage, user, setUser, ch
                 <option value={UserRole.Nurse_Head}>سرپرستار</option>
                 <option value={UserRole.Nurse}>پرستار</option>
                 <option value={UserRole.NursingStudent}>دانشجوی پرستاری</option>
+                <option value={UserRole.Receptionist}>مسئول پذیرش</option>
               </select>
             </div>
           </div>

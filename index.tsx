@@ -18,6 +18,9 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [dbConnected, setDbConnected] = useState(false);
   
+  // Navigation State (Deep Linking)
+  const [targetPatientId, setTargetPatientId] = useState<string | null>(null);
+  
   // Initialize User from LocalStorage to persist role across reloads
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('hospyar_user');
@@ -38,6 +41,7 @@ const App = () => {
     {
       id: 'p1', name: 'علی رضایی', age: 63, ward: 'ICU', diagnosis: 'Stone Passage',
       admissionDate: '1404/04/12', status: 'Admitted',
+      likes: 12, comments: [],
       chiefComplaint: 'درد شدید پهلو و هماچوری',
       presentIllness: 'بیمار آقای ۶۳ ساله با شکایت درد پهلوی راست مراجعه کرده است. درد کولیکی بوده و به کشاله ران تیر می‌کشد. همراه با تهوع و استفراغ.',
       pmh: ['Hypertension', 'Kidney Stones'],
@@ -64,6 +68,7 @@ const App = () => {
     {
       id: 'p2', name: 'مریم احمدی', age: 45, ward: 'داخلی', diagnosis: 'پنومونی',
       admissionDate: '1404/04/14', status: 'Admitted',
+      likes: 5, comments: [],
       chiefComplaint: 'تنگی نفس و تب',
       presentIllness: 'بیمار خانم ۴۵ ساله با تب و لرز و سرفه خلط دار از ۳ روز پیش.',
       pmh: ['Diabetes Mellitus Type 2'],
@@ -176,6 +181,12 @@ const App = () => {
     }
   };
 
+  // --- Helper to Navigate to Patient Record ---
+  const handleNavigateToPatient = (id: string) => {
+    setTargetPatientId(id);
+    setPage(Page.Records);
+  };
+
   // --- Render Page ---
   const renderContent = () => {
     if (loading) {
@@ -189,9 +200,9 @@ const App = () => {
 
     switch (page) {
       case Page.Home:
-        return <Dashboard user={user} setPage={setPage} />;
+        return <Dashboard user={user} setPage={setPage} patients={patients} onNavigate={handleNavigateToPatient} />;
       case Page.Wards:
-        return <Wards patients={patients} setPatients={setPatients} />;
+        return <Wards patients={patients} setPatients={setPatients} user={user} onNavigate={handleNavigateToPatient} />;
       case Page.Calendar:
         return <CalendarPage events={events} setEvents={setEvents} />;
       case Page.Financials:
@@ -199,9 +210,17 @@ const App = () => {
       case Page.Messages:
         return <Messages />;
       case Page.Records:
-        return <Records patients={patients} setPatients={setPatients} user={user} />;
+        return (
+          <Records 
+            patients={patients} 
+            setPatients={setPatients} 
+            user={user} 
+            targetPatientId={targetPatientId}
+            clearTargetPatientId={() => setTargetPatientId(null)}
+          />
+        );
       default:
-        return <Dashboard user={user} setPage={setPage} />;
+        return <Dashboard user={user} setPage={setPage} patients={patients} onNavigate={handleNavigateToPatient} />;
     }
   };
 

@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
-import { Patient, DrugOrder, Order, UserProfile, UserRole, AuditLogEntry } from '../types.ts';
+import React, { useState, useEffect } from 'react';
+import { Patient, DrugOrder, Order, UserProfile, UserRole, AuditLogEntry, Comment } from '../types.ts';
 import { db } from '../services/db.ts';
 import { 
   FileText, Clock, UserPlus, Calendar, ChevronLeft, Save, X, 
   Activity, User, Eye, Pill, Syringe, ClipboardList, Plus, Trash2, Search, CheckSquare,
-  ShieldCheck, AlertTriangle, CheckCircle, ShieldAlert, Printer
+  ShieldCheck, AlertTriangle, CheckCircle, ShieldAlert, Printer, Heart, MessageCircle, Send, Edit2
 } from 'lucide-react';
 
 interface RecordsProps {
   patients: Patient[];
   setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
   user: UserProfile;
+  targetPatientId: string | null;
+  clearTargetPatientId: () => void;
 }
 
 // --- Data Constants ---
@@ -43,26 +45,52 @@ const COMMON_IMAGING = ['CXR', 'ECG', 'Abdominal US', 'Brain CT', 'Chest CT'];
 const ROUTES = ['PO (خوراکی)', 'IV (وریدی)', 'IM (عضلانی)', 'SC (زیرجلدی)', 'SL (زیرزبانی)', 'Topical (موضعی)', 'PR (رکتال)'];
 const FREQUENCIES = ['Daily (روزانه)', 'BD (دوبار در روز)', 'TID (سه بار در روز)', 'QID (چهار بار در روز)', 'PRN (هنگام نیاز)', 'Stat (فوری)', 'Q8H', 'Q12H'];
 
-const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
+const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPatientId, clearTargetPatientId }) => {
   const [activeTab, setActiveTab] = useState<'New' | 'Recent' | 'All'>('New');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   
+  // Handle Deep Linking
+  useEffect(() => {
+    if (targetPatientId) {
+      const p = patients.find(p => p.id === targetPatientId);
+      if (p) {
+        setSelectedPatient(p);
+        clearTargetPatientId();
+      }
+    }
+  }, [targetPatientId, patients, clearTargetPatientId]);
+
   // Editor State
-  const [recordTab, setRecordTab] = useState<'History' | 'Orders' | 'FollowUp' | 'Log'>('History');
+  const [recordTab, setRecordTab] = useState<'History' | 'Orders' | 'FollowUp' | 'Log' | 'Social'>('History');
   const [drugSearch, setDrugSearch] = useState('');
   const [newDrug, setNewDrug] = useState<Partial<DrugOrder>>({ dosage: '', frequency: '' });
+  
+  // Comment State
+  const [newComment, setNewComment] = useState('');
 
   // Prescription Modal State
   const [prescribeModalOpen, setPrescribeModalOpen] = useState(false);
   const [pendingDrugName, setPendingDrugName] = useState('');
   const [prescribeDetails, setPrescribeDetails] = useState({ dosage: '', route: ROUTES[0], frequency: FREQUENCIES[1] });
+  
+  // Name Edit State
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   // Permissions
   const canPrescribe = [UserRole.MD_General, UserRole.MD_Specialist, UserRole.MedicalStudent].includes(user.role);
   const canEditClinical = [UserRole.MD_General, UserRole.MD_Specialist, UserRole.MedicalStudent].includes(user.role);
   const canAdminister = [UserRole.Nurse, UserRole.Nurse_Head, UserRole.NursingStudent].includes(user.role);
+  const isReceptionist = user.role === UserRole.Receptionist;
 
-  // --- Audit Log Logic ---
+  // --- Logic ---
+  
+  const handleNameSave = () => {
+      if (!selectedPatient || !editedName.trim()) return;
+      updatePatientWithLog({ ...selectedPatient, name: editedName }, 'Edit Name', `Name changed from ${selectedPatient.name} to ${editedName}`);
+      setIsEditingName(false);
+  };
+
   const updatePatientWithLog = (updatedPatient: Patient, action: string, details: string) => {
     const logEntry: AuditLogEntry = {
       id: Math.random().toString(),
@@ -86,6 +114,37 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
     db.upsertPatient(patientWithLog);
   };
 
+  // Social Features
+  const handleLike = () => {
+    if(!selectedPatient) return;
+    const currentLikes = selectedPatient.likes || 0;
+    const updated = { ...selectedPatient, likes: currentLikes + 1 };
+    setPatients(patients.map(p => p.id === selectedPatient.id ? updated : p));
+    setSelectedPatient(updated);
+    db.upsertPatient(updated);
+  };
+
+  const handleComment = () => {
+    if(!selectedPatient || !newComment.trim()) return;
+    const comment: Comment = {
+        id: Math.random().toString(),
+        user: user.name,
+        role: user.role,
+        text: newComment,
+        date: new Date().toLocaleString('fa-IR')
+    };
+    const updated = { 
+        ...selectedPatient, 
+        comments: [comment, ...(selectedPatient.comments || [])] 
+    };
+    setPatients(patients.map(p => p.id === selectedPatient.id ? updated : p));
+    setSelectedPatient(updated);
+    db.upsertPatient(updated);
+    setNewComment('');
+  };
+
+  // ... (Other handlers: addDrugHistory, toggleROS, initiateOrder, confirmDrugPrescription, addOrder, updateOrderStatus, addProgressNote, handleTextChange, handleBlurLog remain largely the same)
+  
   const addDrugHistory = () => {
     if (!selectedPatient || !newDrug.name) return;
     const order: DrugOrder = {
@@ -128,7 +187,6 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
     );
   };
 
-  // Trigger modal for drugs, direct add for others
   const initiateOrder = (type: 'Drug' | 'Lab' | 'Imaging', name: string) => {
      if (!canPrescribe) return;
      if (type === 'Drug') {
@@ -318,7 +376,30 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
                     <div className="p-6 border-b border-dark-700 flex flex-col md:flex-row justify-between items-start md:items-center bg-dark-900/30 gap-4 print:hidden">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <h2 className="text-2xl font-bold text-white">{selectedPatient.name}</h2>
+                                {isEditingName ? (
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            value={editedName}
+                                            onChange={(e) => setEditedName(e.target.value)}
+                                            className="bg-dark-700 border border-dark-500 text-white rounded px-2 py-1"
+                                            autoFocus
+                                        />
+                                        <button onClick={handleNameSave} className="text-green-500"><CheckCircle size={20}/></button>
+                                        <button onClick={() => setIsEditingName(false)} className="text-red-500"><X size={20}/></button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h2 className="text-2xl font-bold text-white">{selectedPatient.name}</h2>
+                                        {isReceptionist && (
+                                            <button 
+                                                onClick={() => { setEditedName(selectedPatient.name); setIsEditingName(true); }}
+                                                className="text-gray-500 hover:text-white"
+                                            >
+                                                <Edit2 size={16}/>
+                                            </button>
+                                        )}
+                                    </>
+                                )}
                                 <span className="bg-dark-700 text-gray-300 px-2 py-0.5 rounded text-sm">{selectedPatient.age} ساله</span>
                                 <span className="text-sm text-gray-400">| پرونده: {selectedPatient.id}</span>
                             </div>
@@ -344,12 +425,12 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
 
                     {/* Editor Tabs - Hidden on Print */}
                     <div className="px-6 pt-4 flex gap-4 border-b border-dark-700 overflow-x-auto print:hidden">
-                        {['History', 'Orders', 'FollowUp', 'Log'].map((t) => (
+                        {['History', 'Orders', 'FollowUp', 'Log', 'Social'].map((t) => (
                             <button
                                 key={t}
                                 onClick={() => setRecordTab(t as any)}
                                 className={`
-                                    pb-3 px-2 font-medium text-sm transition-colors border-b-2 flex items-center gap-2
+                                    pb-3 px-2 font-medium text-sm transition-colors border-b-2 flex items-center gap-2 whitespace-nowrap
                                     ${recordTab === t 
                                         ? 'text-primary border-primary' 
                                         : 'text-gray-400 border-transparent hover:text-white'}
@@ -358,7 +439,8 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
                                 {t === 'History' && 'شرح حال و معاینه'}
                                 {t === 'Orders' && 'دستورات پزشک'}
                                 {t === 'FollowUp' && 'سیر بیماری'}
-                                {t === 'Log' && <><ShieldCheck size={14}/> گزارشات (Log)</>}
+                                {t === 'Log' && <><ShieldCheck size={14}/> گزارشات</>}
+                                {t === 'Social' && <><Heart size={14}/> تعامل</>}
                             </button>
                         ))}
                     </div>
@@ -366,6 +448,69 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user }) => {
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-8 print:overflow-visible">
                         
+                        {/* ---------------- SOCIAL TAB (NEW) ---------------- */}
+                        {recordTab === 'Social' && (
+                            <div className="max-w-3xl mx-auto space-y-6">
+                                <div className="bg-dark-900 rounded-2xl p-8 border border-dark-700 text-center space-y-4">
+                                    <h3 className="text-xl font-bold text-white">بازخورد و مشارکت در کیس آموزشی</h3>
+                                    <p className="text-gray-400">نظر شما در مورد تشخیص و درمان این بیمار چیست؟</p>
+                                    
+                                    <button 
+                                        onClick={handleLike}
+                                        className="inline-flex items-center gap-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-6 py-3 rounded-full transition-all border border-red-500/20 group"
+                                    >
+                                        <Heart size={24} className={`group-hover:fill-current fill-current`} />
+                                        <span className="font-bold text-lg">{selectedPatient.likes || 0} لایک</span>
+                                    </button>
+                                </div>
+
+                                <div className="bg-dark-800 rounded-2xl border border-dark-700 overflow-hidden">
+                                    <div className="p-4 bg-dark-900 border-b border-dark-700 font-bold text-gray-300">
+                                        نظرات و بحث ({selectedPatient.comments?.length || 0})
+                                    </div>
+                                    <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+                                        {selectedPatient.comments && selectedPatient.comments.length > 0 ? (
+                                            selectedPatient.comments.map(comment => (
+                                                <div key={comment.id} className="bg-dark-900 p-4 rounded-xl border border-dark-700">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center">
+                                                                <User size={16} className="text-gray-400" />
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-white font-bold text-sm block">{comment.user}</span>
+                                                                <span className="text-xs text-gray-500">{comment.role}</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs text-gray-600">{comment.date}</span>
+                                                    </div>
+                                                    <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-center text-gray-500 py-4">اولین نظر را شما ثبت کنید.</p>
+                                        )}
+                                    </div>
+                                    <div className="p-4 bg-dark-900/50 border-t border-dark-700 flex gap-2">
+                                        <input 
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            placeholder="نظر خود را بنویسید..."
+                                            className="flex-1 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                                        />
+                                        <button 
+                                            onClick={handleComment}
+                                            disabled={!newComment.trim()}
+                                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-white p-3 rounded-xl transition-colors"
+                                        >
+                                            <Send size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* ---------------- HISTORY TAB ---------------- */}
                         {recordTab === 'History' && (
                             <div className="print:hidden"> 

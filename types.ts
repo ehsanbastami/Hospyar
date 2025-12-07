@@ -5,7 +5,8 @@ export enum UserRole {
   MedicalStudent = 'MedicalStudent',
   Nurse_Head = 'Nurse_Head',
   Nurse = 'Nurse',
-  NursingStudent = 'NursingStudent'
+  NursingStudent = 'NursingStudent',
+  Receptionist = 'Receptionist' // مسئول پذیرش
 }
 
 export interface UserProfile {
@@ -55,6 +56,20 @@ export interface AuditLogEntry {
   details: string;
 }
 
+export interface Comment {
+  id: string;
+  user: string;
+  role: string;
+  text: string;
+  date: string;
+}
+
+export interface TransferRequest {
+  targetWard: string;
+  requester: string;
+  date: string;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -64,6 +79,11 @@ export interface Patient {
   admissionDate: string;
   status: 'Admitted' | 'Discharged';
   
+  // Social & Approval
+  likes: number;
+  comments: Comment[];
+  transferRequest?: TransferRequest;
+
   // Section 1: History
   chiefComplaint: string; 
   presentIllness: string; 

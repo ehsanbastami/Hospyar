@@ -1,26 +1,63 @@
 import React, { useState } from 'react';
-import { Patient } from '../types.ts';
+import { Patient, UserRole, UserProfile } from '../types.ts';
 import { db } from '../services/db.ts';
-import { Plus, Archive, ArrowRightLeft, Activity, Eye, X, Save } from 'lucide-react';
+import { Plus, Archive, ArrowRightLeft, Activity, Eye, X, Check, FileText } from 'lucide-react';
 
 interface WardsProps {
   patients: Patient[];
   setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+  user: UserProfile;
+  onNavigate: (patientId: string) => void;
 }
 
-const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
+const Wards: React.FC<WardsProps> = ({ patients, setPatients, user, onNavigate }) => {
   const wardsList = ['اورژانس', 'ICU', 'CCU', 'داخلی', 'جراحی'];
   const [activeWard, setActiveWard] = useState('اورژانس');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
+  // Permissions
+  const isReceptionist = user.role === UserRole.Receptionist;
+  const isNurse = user.role.includes('Nurse');
+  const isDoctor = user.role.includes('MD') || user.role === UserRole.MedicalStudent;
+
   const filteredPatients = patients.filter(p => p.ward === activeWard && p.status === 'Admitted');
 
-  const handleTransfer = (id: string, newWard: string) => {
+  // Request Transfer (Doctor/Other)
+  const requestTransfer = (id: string, targetWard: string) => {
+    if (targetWard === activeWard) return;
     const p = patients.find(p => p.id === id);
     if (!p) return;
-    const updated = { ...p, ward: newWard };
+
+    // Check if Nurse/Receptionist -> Immediate Transfer (Optional, assuming Receptionist also has power, but prompt said "only by nurses approval")
+    // Let's stick to prompt: Doctors Request -> Nurses Approve. Receptionist? Maybe direct. 
+    // Let's allow Receptionist direct transfer for data correction.
     
-    setPatients(patients.map(p => p.id === id ? updated : p));
+    if (isReceptionist) {
+         // Immediate
+         const updated = { ...p, ward: targetWard, transferRequest: undefined };
+         setPatients(patients.map(p => p.id === id ? updated : p));
+         db.upsertPatient(updated);
+    } else {
+        // Request
+        const updated = { 
+            ...p, 
+            transferRequest: {
+                targetWard,
+                requester: user.name,
+                date: new Date().toLocaleString('fa-IR')
+            }
+        };
+        setPatients(patients.map(p => p.id === id ? updated : p));
+        db.upsertPatient(updated);
+        alert(`درخواست انتقال به بخش ${targetWard} برای پرستار ارسال شد.`);
+    }
+  };
+
+  // Approve Transfer (Nurse)
+  const approveTransfer = (p: Patient) => {
+    if (!p.transferRequest) return;
+    const updated = { ...p, ward: p.transferRequest.targetWard, transferRequest: undefined };
+    setPatients(patients.map(curr => curr.id === p.id ? updated : curr));
     db.upsertPatient(updated);
   };
 
@@ -36,6 +73,10 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
   };
 
   const handleAddPatient = () => {
+    if (!isReceptionist) {
+        alert('فقط مسئول پذیرش مجاز به ثبت بیمار جدید است.');
+        return;
+    }
     const newPatient: Patient = {
         id: Math.random().toString(36).substr(2, 9),
         name: 'بیمار جدید',
@@ -44,6 +85,7 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
         diagnosis: 'بررسی نشده',
         admissionDate: new Date().toLocaleDateString('fa-IR'),
         status: 'Admitted',
+        likes: 0, comments: [],
         chiefComplaint: '',
         presentIllness: '',
         pmh: [], psh: [], fh: [], dh: [], sh: '',
@@ -66,13 +108,15 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
     <div className="space-y-6 relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-white">مدیریت بخش‌ها</h2>
-        <button 
-          onClick={handleAddPatient}
-          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl transition-colors"
-        >
-          <Plus size={18} />
-          پذیرش بیمار جدید
-        </button>
+        {isReceptionist && (
+            <button 
+            onClick={handleAddPatient}
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl transition-colors shadow-lg shadow-primary/20"
+            >
+            <Plus size={18} />
+            پذیرش بیمار جدید
+            </button>
+        )}
       </div>
 
       {/* Wards Tabs */}
@@ -101,8 +145,19 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
           </div>
         ) : (
           filteredPatients.map(patient => (
-            <div key={patient.id} className="bg-dark-800 p-6 rounded-2xl border border-dark-700 hover:border-dark-600 transition-colors flex flex-col">
-              <div className="flex justify-between items-start mb-4">
+            <div key={patient.id} className="bg-dark-800 p-6 rounded-2xl border border-dark-700 hover:border-dark-600 transition-colors flex flex-col relative overflow-hidden">
+              
+              {/* Transfer Request Indicator */}
+              {patient.transferRequest && (
+                  <div className="absolute top-0 left-0 right-0 bg-yellow-500/20 border-b border-yellow-500/30 p-2 flex items-center justify-between px-4">
+                      <span className="text-xs text-yellow-300">درخواست انتقال به <b>{patient.transferRequest.targetWard}</b></span>
+                      {isNurse && (
+                          <button onClick={() => approveTransfer(patient)} className="bg-yellow-500 hover:bg-yellow-400 text-black text-xs px-2 py-0.5 rounded font-bold">تایید</button>
+                      )}
+                  </div>
+              )}
+              
+              <div className={`flex justify-between items-start mb-4 ${patient.transferRequest ? 'mt-6' : ''}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-dark-700 flex items-center justify-center text-primary">
                     <Activity size={20} />
@@ -130,34 +185,44 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
 
               <div className="space-y-3">
                 <button 
-                  onClick={() => setSelectedPatient(patient)}
+                  onClick={() => onNavigate(patient.id)}
                   className="w-full flex items-center justify-center gap-2 bg-dark-700 hover:bg-primary hover:text-white text-gray-300 py-2.5 rounded-xl text-sm transition-all"
                 >
+                    <FileText size={16} />
+                    پرونده کامل
+                </button>
+
+                <button 
+                  onClick={() => setSelectedPatient(patient)}
+                  className="w-full flex items-center justify-center gap-2 bg-dark-900 hover:bg-dark-800 text-gray-400 py-2 rounded-lg text-sm transition-colors"
+                >
                     <Eye size={16} />
-                    مشاهده خلاصه وضعیت
+                    خلاصه وضعیت
                 </button>
 
                 <div className="flex gap-2 pt-2 border-t border-dark-700">
                     <div className="relative group flex-1">
                         <select 
                             className="absolute opacity-0 inset-0 w-full cursor-pointer z-10"
-                            onChange={(e) => handleTransfer(patient.id, e.target.value)}
+                            onChange={(e) => requestTransfer(patient.id, e.target.value)}
                             value={patient.ward}
                         >
                             {wardsList.map(w => <option key={w} value={w}>{w}</option>)}
                         </select>
                         <button className="w-full flex items-center justify-center gap-2 bg-dark-900 hover:bg-dark-800 text-gray-400 py-2 rounded-lg text-sm transition-colors">
-                        <ArrowRightLeft size={16} />
-                        انتقال
+                            <ArrowRightLeft size={16} />
+                            {patient.transferRequest ? 'در انتظار...' : 'انتقال'}
                         </button>
                     </div>
-                    <button 
-                    onClick={() => handleDischarge(patient.id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-dark-900 hover:bg-red-900/20 hover:text-red-400 text-gray-400 py-2 rounded-lg text-sm transition-colors"
-                    >
-                    <Archive size={16} />
-                    ترخیص
-                    </button>
+                    {isReceptionist && (
+                        <button 
+                            onClick={() => handleDischarge(patient.id)}
+                            className="flex-1 flex items-center justify-center gap-2 bg-dark-900 hover:bg-red-900/20 hover:text-red-400 text-gray-400 py-2 rounded-lg text-sm transition-colors"
+                        >
+                            <Archive size={16} />
+                            ترخیص
+                        </button>
+                    )}
                 </div>
               </div>
             </div>
@@ -205,17 +270,21 @@ const Wards: React.FC<WardsProps> = ({ patients, setPatients }) => {
                              </div>
                         </div>
                     </div>
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg text-sm text-yellow-200">
-                        برای ویرایش کامل پرونده، دستورات و سیر بیماری لطفاً به صفحه <b>سوابق بیماران</b> مراجعه کنید.
-                    </div>
                 </div>
 
-                <div className="p-4 border-t border-dark-700 bg-dark-900/50 flex justify-end">
+                <div className="p-4 border-t border-dark-700 bg-dark-900/50 flex justify-end gap-3">
                     <button 
                         onClick={() => setSelectedPatient(null)}
-                        className="px-6 py-2 rounded-xl text-white bg-dark-700 hover:bg-dark-600 transition-colors"
+                        className="px-6 py-2 rounded-xl text-gray-300 bg-dark-700 hover:bg-dark-600 transition-colors"
                     >
                         بستن
+                    </button>
+                    <button 
+                        onClick={() => { setSelectedPatient(null); onNavigate(selectedPatient.id); }}
+                        className="px-6 py-2 rounded-xl text-white bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2"
+                    >
+                        <FileText size={16} />
+                        پرونده کامل
                     </button>
                 </div>
             </div>
