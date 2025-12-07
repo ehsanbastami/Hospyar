@@ -4,9 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // This allows process.env.API_KEY to work in the code after build
-    'process.env': {
-      API_KEY: process.env.API_KEY
-    }
+    // Correctly stringify the environment variable for Vite replacement
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   }
 });
