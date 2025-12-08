@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { UserProfile, UserRole } from '../types.ts';
 import { User, Mail, Lock, Phone, GraduationCap, Building2, Stethoscope, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -32,14 +31,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
+    // Strict Validation
     if (!formData.email || !formData.password) {
       setError('لطفاً ایمیل و رمز عبور را وارد کنید.');
       return;
     }
 
     if (!isLogin) {
-      if (!formData.firstName || !formData.lastName || !formData.phone || !formData.university || !formData.fieldOfStudy) {
+      // All fields required for sign up
+      if (
+        !formData.firstName.trim() || 
+        !formData.lastName.trim() || 
+        !formData.phone.trim() || 
+        !formData.university.trim() || 
+        !formData.fieldOfStudy.trim()
+      ) {
         setError('لطفاً تمام فیلدهای ستاره‌دار را تکمیل کنید.');
         return;
       }
@@ -102,14 +108,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <label className="text-xs text-gray-400">نام *</label>
                   <div className="relative">
                     <User className="absolute right-3 top-3 text-gray-500" size={16} />
-                    <input name="firstName" placeholder="نام" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                    <input required name="firstName" placeholder="نام" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-gray-400">نام خانوادگی *</label>
                   <div className="relative">
                     <User className="absolute right-3 top-3 text-gray-500" size={16} />
-                    <input name="lastName" placeholder="نام خانوادگی" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                    <input required name="lastName" placeholder="نام خانوادگی" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                   </div>
                 </div>
               </div>
@@ -119,7 +125,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                <label className="text-xs text-gray-400">ایمیل *</label>
                <div className="relative">
                   <Mail className="absolute right-3 top-3 text-gray-500" size={16} />
-                  <input name="email" type="email" placeholder="example@university.ac.ir" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                  <input required name="email" type="email" placeholder="example@university.ac.ir" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                </div>
             </div>
 
@@ -127,7 +133,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                <label className="text-xs text-gray-400">رمز عبور *</label>
                <div className="relative">
                   <Lock className="absolute right-3 top-3 text-gray-500" size={16} />
-                  <input name="password" type="password" placeholder="••••••••" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                  <input required name="password" type="password" placeholder="••••••••" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                </div>
             </div>
 
@@ -137,7 +143,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     <label className="text-xs text-gray-400">شماره تماس *</label>
                     <div className="relative">
                         <Phone className="absolute right-3 top-3 text-gray-500" size={16} />
-                        <input name="phone" placeholder="0912..." className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                        <input required name="phone" placeholder="0912..." className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                     </div>
                  </div>
 
@@ -146,21 +152,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         <label className="text-xs text-gray-400">دانشگاه *</label>
                         <div className="relative">
                             <Building2 className="absolute right-3 top-3 text-gray-500" size={16} />
-                            <input name="university" placeholder="نام دانشگاه" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                            <input required name="university" placeholder="نام دانشگاه" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                         </div>
                     </div>
                     <div className="space-y-1">
                         <label className="text-xs text-gray-400">رشته تحصیلی *</label>
                         <div className="relative">
                             <GraduationCap className="absolute right-3 top-3 text-gray-500" size={16} />
-                            <input name="fieldOfStudy" placeholder="مثال: پزشکی" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
+                            <input required name="fieldOfStudy" placeholder="مثال: پزشکی" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 pr-10 pl-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} />
                         </div>
                     </div>
                  </div>
 
                  <div className="space-y-1">
                     <label className="text-xs text-gray-400">نقش کاربری *</label>
-                    <select name="role" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 px-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} value={formData.role}>
+                    <select required name="role" className="w-full bg-dark-900 border border-dark-600 rounded-xl py-2.5 px-4 text-white text-sm focus:border-primary focus:outline-none" onChange={handleChange} value={formData.role}>
                         <option value={UserRole.MedicalStudent}>دانشجوی پزشکی</option>
                         <option value={UserRole.MD_General}>پزشک عمومی</option>
                         <option value={UserRole.MD_Specialist}>پزشک متخصص</option>
@@ -185,7 +191,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <p className="text-gray-400 text-sm">
               {isLogin ? 'حساب کاربری ندارید؟' : 'قبلاً ثبت نام کرده‌اید؟'}
               <button 
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setError(''); }}
                 className="text-primary font-bold mr-2 hover:underline"
               >
                 {isLogin ? 'ثبت نام کنید' : 'وارد شوید'}
@@ -200,4 +206,3 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 };
 
 export default Auth;
-    

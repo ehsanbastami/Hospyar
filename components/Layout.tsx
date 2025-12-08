@@ -9,7 +9,7 @@ interface LayoutProps {
   currentPage: Page;
   setPage: (page: Page) => void;
   user: UserProfile;
-  setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   children: React.ReactNode;
   onSearch: (query: string) => void;
 }
@@ -44,6 +44,13 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setPage, user, setUser, ch
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchQuery);
+  };
+
+  const handleSignOut = () => {
+    if (confirm('آیا مطمئن هستید که می‌خواهید خارج شوید؟')) {
+      localStorage.removeItem('hospyar_user');
+      setUser(null);
+    }
   };
 
   return (
@@ -128,7 +135,10 @@ const Layout: React.FC<LayoutProps> = ({ currentPage, setPage, user, setUser, ch
               <Settings size={18} />
               تنظیمات
             </button>
-            <button className="flex items-center gap-2 hover:text-red-400 transition-colors">
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center gap-2 hover:text-red-400 transition-colors"
+            >
               <LogOut size={18} />
               خروج
             </button>

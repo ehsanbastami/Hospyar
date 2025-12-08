@@ -311,8 +311,8 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     // Slide 1: Title
     const slide1 = pptx.addSlide();
     slide1.background = { color: 'F1F5F9' };
-    slide1.addText(`پرونده پزشکی: ${selectedPatient.name}`, { x: '10%', y: '40%', w: '80%', fontSize: 32, bold: true, align: 'center', color: '1e293b', rtlMode: true, fontFace: 'Arial' });
-    slide1.addText(`سن: ${selectedPatient.age} | بخش: ${selectedPatient.ward} | تاریخ پذیرش: ${selectedPatient.admissionDate}`, { x: '10%', y: '55%', w: '80%', fontSize: 18, align: 'center', color: '64748b', rtlMode: true, fontFace: 'Arial' });
+    slide1.addText(`پرونده پزشکی: ${selectedPatient.name}`, { x: '10%', y: '40%', w: '80%', fontSize: 32, bold: true, align: 'center', color: '000000', rtlMode: true, fontFace: 'Arial' });
+    slide1.addText(`سن: ${selectedPatient.age} | بخش: ${selectedPatient.ward} | تاریخ پذیرش: ${selectedPatient.admissionDate}`, { x: '10%', y: '55%', w: '80%', fontSize: 18, align: 'center', color: '444444', rtlMode: true, fontFace: 'Arial' });
 
     // Slide 2: Chief Complaint & Present Illness
     const slide2 = pptx.addSlide();
@@ -336,7 +336,8 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
        [{ text: 'FH', options: commonTextStyle }, { text: (selectedPatient.fh || []).join(', '), options: commonTextStyle }],
        [{ text: 'SH', options: commonTextStyle }, { text: selectedPatient.sh || '-', options: commonTextStyle }],
     ];
-    slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12 });
+    // Force color in table options
+    slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12, color: '000000', fontFace: 'Arial' });
 
     // Slide 4: Vitals & General
     const slide4 = pptx.addSlide();
@@ -356,7 +357,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     vData.forEach((v, i) => {
         const xPos = i < 3 ? 0.5 + (i * 3) : 0.5 + ((i-3) * 3);
         const yPos = i < 3 ? vy : vy + 1.5;
-        slide4.addText(v[0], { x: xPos, y: yPos, w: 2, fontSize: 12, color: '64748b', rtlMode: true, fontFace: 'Arial' });
+        slide4.addText(v[0], { x: xPos, y: yPos, w: 2, fontSize: 12, color: '444444', rtlMode: true, fontFace: 'Arial' });
         slide4.addText(v[1] || '-', { x: xPos, y: yPos + 0.4, w: 2, fontSize: 18, bold: true, rtlMode: true, ...commonTextStyle });
     });
 
@@ -373,7 +374,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
       ]);
     
     if (rosData.length > 0) {
-        slide5.addTable(rosData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
+        slide5.addTable(rosData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11, color: '000000', fontFace: 'Arial' });
     } else {
         slide5.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true, ...commonTextStyle });
     }
@@ -391,7 +392,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
         ]);
     
     if(peData.length > 0) {
-        slide6.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
+        slide6.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11, color: '000000', fontFace: 'Arial' });
     } else {
         slide6.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true, ...commonTextStyle });
     }
