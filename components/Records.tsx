@@ -333,7 +333,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
        [{ text: 'FH' }, { text: (selectedPatient.fh || []).join(', ') }],
        [{ text: 'SH' }, { text: selectedPatient.sh || '-' }],
     ];
-    slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12, rtlMode: true });
+    slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12 });
 
     // Slide 4: Vitals & General
     const slide4 = pptx.addSlide();
@@ -370,7 +370,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
         ]);
     
     if(peData.length > 0) {
-        slide5.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11, rtlMode: true });
+        slide5.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
     } else {
         slide5.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true });
     }
