@@ -11,13 +11,14 @@ import Auth from './components/Auth.tsx';
 import { Page, UserProfile, Patient, CalendarEvent, FinancialRecord, UserRole } from './types.ts';
 import { searchApp } from './services/geminiService.ts';
 import { db } from './services/db.ts';
-import { X, Loader, Database } from 'lucide-react';
+import { X, Loader, Database, AlertTriangle } from 'lucide-react';
 
 const App = () => {
   // --- Global State ---
   const [page, setPage] = useState<Page>(Page.Home);
-  const [loading, setLoading] = useState(false); // Changed to false initially as we might wait for auth
+  const [loading, setLoading] = useState(false); 
   const [dbConnected, setDbConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
   
   // Navigation State (Deep Linking)
   const [targetPatientId, setTargetPatientId] = useState<string | null>(null);
@@ -37,7 +38,7 @@ const App = () => {
     }
   }, [user]);
 
-  // Mock Data for Initial Seed
+  // Mock Data for Initial Seed & Fallback
   const MOCK_PATIENTS: Patient[] = [
     {
       id: 'p1', name: 'علی رضایی', age: 63, ward: 'ICU', diagnosis: 'Stone Passage',
@@ -107,46 +108,60 @@ const App = () => {
   const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS);
   const [financials, setFinancials] = useState<FinancialRecord[]>(MOCK_FINANCIALS);
 
-  // --- Supabase Integration ---
+  // --- Supabase Integration with Timeout ---
   useEffect(() => {
     const initData = async () => {
+      let isMounted = true;
+      const timeoutDuration = 5000; // 5 seconds timeout
+
+      // Timeout Promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), timeoutDuration)
+      );
+
       try {
         setLoading(true);
-        // 1. Fetch Patients
-        const dbPatients = await db.getPatients();
-        if (dbPatients.length > 0) {
-          setPatients(dbPatients);
-          setDbConnected(true);
-        } else {
-          // Seed DB if empty
-          console.log('DB empty, seeding mock patients...');
-          await Promise.all(MOCK_PATIENTS.map(p => db.upsertPatient(p)));
-          setDbConnected(true);
-        }
+        setConnectionError(false);
 
-        // 2. Fetch Events
-        const dbEvents = await db.getEvents();
-        if (dbEvents.length > 0) {
-          setEvents(dbEvents);
-        } else {
-          await Promise.all(MOCK_EVENTS.map(e => db.upsertEvent(e)));
-        }
+        // Wrap DB calls in a race with timeout
+        await Promise.race([
+          (async () => {
+            // 1. Fetch Patients
+            const dbPatients = await db.getPatients();
+            if (isMounted) {
+              if (dbPatients.length > 0) {
+                setPatients(dbPatients);
+                setDbConnected(true);
+              } else {
+                console.log('DB empty, seeding mock patients...');
+                // Don't await seeding to speed up UI
+                Promise.all(MOCK_PATIENTS.map(p => db.upsertPatient(p)));
+                setDbConnected(true);
+              }
+            }
 
-        // 3. Fetch Financials
-        const dbFinancials = await db.getFinancials();
-        if (dbFinancials.length > 0) {
-          setFinancials(dbFinancials);
-        } else {
-           await db.seedFinancials(MOCK_FINANCIALS);
-        }
+            // 2. Fetch Events
+            const dbEvents = await db.getEvents();
+            if (isMounted && dbEvents.length > 0) setEvents(dbEvents);
+            else if (isMounted) Promise.all(MOCK_EVENTS.map(e => db.upsertEvent(e)));
+
+            // 3. Fetch Financials
+            const dbFinancials = await db.getFinancials();
+            if (isMounted && dbFinancials.length > 0) setFinancials(dbFinancials);
+            else if (isMounted) db.seedFinancials(MOCK_FINANCIALS);
+          })(),
+          timeoutPromise
+        ]);
 
       } catch (error) {
-        console.error("Failed to connect to Supabase:", error);
-        // Fallback to local state (MOCK_PATIENTS) which is already set initial
+        console.error("Data fetch error or timeout:", error);
+        if (isMounted) setConnectionError(true);
+        // We implicitly fall back to MOCK data which is already initial state
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     if (user) {
       initData();
     }
@@ -245,6 +260,14 @@ const App = () => {
           <div className="fixed bottom-4 left-4 z-50 bg-green-500/10 text-green-400 border border-green-500/30 px-3 py-1.5 rounded-full text-xs flex items-center gap-2 print:hidden">
             <Database size={12} />
             متصل به Supabase
+          </div>
+      )}
+      
+      {/* Offline/Fallback Indicator */}
+      {connectionError && !loading && (
+          <div className="fixed bottom-4 left-4 z-50 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-full text-xs flex items-center gap-2 print:hidden">
+            <AlertTriangle size={12} />
+            حالت آفلاین (داده‌های نمونه)
           </div>
       )}
 
