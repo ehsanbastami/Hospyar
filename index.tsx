@@ -7,6 +7,7 @@ import CalendarPage from './components/Calendar.tsx';
 import Financials from './components/Financials.tsx';
 import Messages from './components/Messages.tsx';
 import Records from './components/Records.tsx';
+import Auth from './components/Auth.tsx';
 import { Page, UserProfile, Patient, CalendarEvent, FinancialRecord, UserRole } from './types.ts';
 import { searchApp } from './services/geminiService.ts';
 import { db } from './services/db.ts';
@@ -15,25 +16,25 @@ import { X, Loader, Database } from 'lucide-react';
 const App = () => {
   // --- Global State ---
   const [page, setPage] = useState<Page>(Page.Home);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false initially as we might wait for auth
   const [dbConnected, setDbConnected] = useState(false);
   
   // Navigation State (Deep Linking)
   const [targetPatientId, setTargetPatientId] = useState<string | null>(null);
   
-  // Initialize User from LocalStorage to persist role across reloads
-  const [user, setUser] = useState<UserProfile>(() => {
+  // Initialize User from LocalStorage
+  const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('hospyar_user');
-    return saved ? JSON.parse(saved) : {
-      name: 'دکتر احسان بسطامی',
-      role: UserRole.MD_Specialist,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
-    };
+    return saved ? JSON.parse(saved) : null;
   });
 
   // Save User to LocalStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('hospyar_user', JSON.stringify(user));
+    if (user) {
+      localStorage.setItem('hospyar_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('hospyar_user');
+    }
   }, [user]);
 
   // Mock Data for Initial Seed
@@ -146,15 +147,17 @@ const App = () => {
         setLoading(false);
       }
     };
-    initData();
-  }, []);
+    if (user) {
+      initData();
+    }
+  }, [user]);
 
   // --- Search Logic ---
   const [searchResult, setSearchResult] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
   const handleSearch = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim() || !user) return;
     setIsSearching(true);
     setSearchResult(null);
 
@@ -186,6 +189,11 @@ const App = () => {
     setTargetPatientId(id);
     setPage(Page.Records);
   };
+
+  // --- Auth Check ---
+  if (!user) {
+    return <Auth onLogin={setUser} />;
+  }
 
   // --- Render Page ---
   const renderContent = () => {

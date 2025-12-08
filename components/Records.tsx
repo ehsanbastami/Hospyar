@@ -303,45 +303,48 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     // Create PPTX
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_16x9';
-    pptx.rtlMode = true; // Enable Right-to-Left
+    pptx.rtlMode = true; // Enable Right-to-Left for the entire presentation
+
+    const commonTextStyle = { color: '000000', fontFace: 'Arial' };
+    const titleStyle = { ...commonTextStyle, bold: true };
 
     // Slide 1: Title
     const slide1 = pptx.addSlide();
     slide1.background = { color: 'F1F5F9' };
-    slide1.addText(`پرونده پزشکی: ${selectedPatient.name}`, { x: '10%', y: '40%', w: '80%', fontSize: 32, bold: true, align: 'center', color: '1e293b', rtlMode: true });
-    slide1.addText(`سن: ${selectedPatient.age} | بخش: ${selectedPatient.ward} | تاریخ پذیرش: ${selectedPatient.admissionDate}`, { x: '10%', y: '55%', w: '80%', fontSize: 18, align: 'center', color: '64748b', rtlMode: true });
+    slide1.addText(`پرونده پزشکی: ${selectedPatient.name}`, { x: '10%', y: '40%', w: '80%', fontSize: 32, bold: true, align: 'center', color: '1e293b', rtlMode: true, fontFace: 'Arial' });
+    slide1.addText(`سن: ${selectedPatient.age} | بخش: ${selectedPatient.ward} | تاریخ پذیرش: ${selectedPatient.admissionDate}`, { x: '10%', y: '55%', w: '80%', fontSize: 18, align: 'center', color: '64748b', rtlMode: true, fontFace: 'Arial' });
 
     // Slide 2: Chief Complaint & Present Illness
     const slide2 = pptx.addSlide();
-    slide2.addText("شکایت اصلی (CC) & شرح بیماری (PI)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide2.addText("شکایت اصلی (CC) & شرح بیماری (PI)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
     slide2.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
     
-    slide2.addText("شکایت اصلی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true });
-    slide2.addText(selectedPatient.chiefComplaint || 'ثبت نشده', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true });
+    slide2.addText("شکایت اصلی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true, ...commonTextStyle });
+    slide2.addText(selectedPatient.chiefComplaint || 'ثبت نشده', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true, ...commonTextStyle });
     
-    slide2.addText("شرح بیماری کنونی:", { x: 0.5, y: 3.0, fontSize: 14, bold: true, rtlMode: true });
-    slide2.addText(selectedPatient.presentIllness || 'ثبت نشده', { x: 0.5, y: 3.4, w: '90%', fontSize: 12, rtlMode: true });
+    slide2.addText("شرح بیماری کنونی:", { x: 0.5, y: 3.0, fontSize: 14, bold: true, rtlMode: true, ...commonTextStyle });
+    slide2.addText(selectedPatient.presentIllness || 'ثبت نشده', { x: 0.5, y: 3.4, w: '90%', fontSize: 12, rtlMode: true, ...commonTextStyle });
 
     // Slide 3: Histories
     const slide3 = pptx.addSlide();
-    slide3.addText("سوابق پزشکی (Histories)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide3.addText("سوابق پزشکی (Histories)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
     slide3.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
     
     const hData = [
-       [{ text: 'PMH' }, { text: (selectedPatient.pmh || []).join(', ') }],
-       [{ text: 'PSH' }, { text: (selectedPatient.psh || []).join(', ') }],
-       [{ text: 'FH' }, { text: (selectedPatient.fh || []).join(', ') }],
-       [{ text: 'SH' }, { text: selectedPatient.sh || '-' }],
+       [{ text: 'PMH', options: commonTextStyle }, { text: (selectedPatient.pmh || []).join(', '), options: commonTextStyle }],
+       [{ text: 'PSH', options: commonTextStyle }, { text: (selectedPatient.psh || []).join(', '), options: commonTextStyle }],
+       [{ text: 'FH', options: commonTextStyle }, { text: (selectedPatient.fh || []).join(', '), options: commonTextStyle }],
+       [{ text: 'SH', options: commonTextStyle }, { text: selectedPatient.sh || '-', options: commonTextStyle }],
     ];
     slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12 });
 
     // Slide 4: Vitals & General
     const slide4 = pptx.addSlide();
-    slide4.addText("علائم حیاتی & ظاهر عمومی", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide4.addText("علائم حیاتی & ظاهر عمومی", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
     slide4.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
     
-    slide4.addText("ظاهر عمومی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true });
-    slide4.addText(selectedPatient.generalAppearance || '-', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true });
+    slide4.addText("ظاهر عمومی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true, ...commonTextStyle });
+    slide4.addText(selectedPatient.generalAppearance || '-', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true, ...commonTextStyle });
 
     const vData = [
        ['BP', selectedPatient.vitalSigns.bp], ['HR', selectedPatient.vitalSigns.hr],
@@ -353,38 +356,56 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     vData.forEach((v, i) => {
         const xPos = i < 3 ? 0.5 + (i * 3) : 0.5 + ((i-3) * 3);
         const yPos = i < 3 ? vy : vy + 1.5;
-        slide4.addText(v[0], { x: xPos, y: yPos, w: 2, fontSize: 12, color: '64748b', rtlMode: true });
-        slide4.addText(v[1] || '-', { x: xPos, y: yPos + 0.4, w: 2, fontSize: 18, bold: true, rtlMode: true });
+        slide4.addText(v[0], { x: xPos, y: yPos, w: 2, fontSize: 12, color: '64748b', rtlMode: true, fontFace: 'Arial' });
+        slide4.addText(v[1] || '-', { x: xPos, y: yPos + 0.4, w: 2, fontSize: 18, bold: true, rtlMode: true, ...commonTextStyle });
     });
 
-    // Slide 5: Physical Exam
+    // Slide 5: ROS (New)
     const slide5 = pptx.addSlide();
-    slide5.addText("معاینات فیزیکی (Physical Exam)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide5.addText("بررسی سیستم‌ها (ROS)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
     slide5.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+
+    const rosData = Object.entries(selectedPatient.ros || {})
+      .filter(([_, symptoms]) => symptoms && symptoms.length > 0)
+      .map(([cat, symptoms]) => [
+        { text: cat, options: { ...commonTextStyle, bold: true } },
+        { text: symptoms.join('، '), options: commonTextStyle }
+      ]);
+    
+    if (rosData.length > 0) {
+        slide5.addTable(rosData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
+    } else {
+        slide5.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true, ...commonTextStyle });
+    }
+
+    // Slide 6: Physical Exam
+    const slide6 = pptx.addSlide();
+    slide6.addText("معاینات فیزیکی (Physical Exam)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
+    slide6.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
 
     const peData = Object.entries(selectedPatient.physicalExam)
         .filter(([_, val]) => typeof val === 'string' && val.trim() !== '')
         .map(([key, val]) => [
-            { text: key }, 
-            { text: val }
+            { text: key, options: commonTextStyle }, 
+            { text: val, options: commonTextStyle }
         ]);
     
     if(peData.length > 0) {
-        slide5.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
+        slide6.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11 });
     } else {
-        slide5.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true });
+        slide6.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true, ...commonTextStyle });
     }
 
-    // Slide 6: Assessment & Plan
-    const slide6 = pptx.addSlide();
-    slide6.addText("تشخیص و درمان", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
-    slide6.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+    // Slide 7: Assessment & Plan
+    const slide7 = pptx.addSlide();
+    slide7.addText("تشخیص و درمان", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true, fontFace: 'Arial' });
+    slide7.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
     
-    slide6.addText(`تشخیص نهایی: ${selectedPatient.primaryDiagnosis || 'نامشخص'}`, { x: 0.5, y: 1.5, fontSize: 16, bold: true, color: '10b981', rtlMode: true });
+    slide7.addText(`تشخیص نهایی: ${selectedPatient.primaryDiagnosis || 'نامشخص'}`, { x: 0.5, y: 1.5, fontSize: 16, bold: true, color: '10b981', rtlMode: true, fontFace: 'Arial' });
     
-    slide6.addText("لیست مشکلات:", { x: 0.5, y: 2.2, fontSize: 14, bold: true, rtlMode: true });
+    slide7.addText("لیست مشکلات:", { x: 0.5, y: 2.2, fontSize: 14, bold: true, rtlMode: true, ...commonTextStyle });
     selectedPatient.problemList.forEach((p, i) => {
-        slide6.addText(`• ${p}`, { x: 0.5, y: 2.6 + (i*0.4), fontSize: 12, rtlMode: true });
+        slide7.addText(`• ${p}`, { x: 0.5, y: 2.6 + (i*0.4), fontSize: 12, rtlMode: true, ...commonTextStyle });
     });
 
     // Save

@@ -10,7 +10,14 @@ export enum UserRole {
 }
 
 export interface UserProfile {
-  name: string;
+  name: string; // Combined First + Last
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string; // In a real app, do not store plain text!
+  phone?: string;
+  university?: string;
+  fieldOfStudy?: string;
   role: UserRole; 
   avatar: string;
 }
