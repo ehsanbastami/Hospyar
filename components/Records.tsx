@@ -4,8 +4,9 @@ import { db } from '../services/db.ts';
 import { 
   FileText, Clock, UserPlus, Calendar, ChevronLeft, Save, X, 
   Activity, User, Eye, Pill, Syringe, ClipboardList, Plus, Trash2, Search, CheckSquare,
-  ShieldCheck, AlertTriangle, CheckCircle, ShieldAlert, Printer, Heart, MessageCircle, Send, Edit2
+  ShieldCheck, AlertTriangle, CheckCircle, ShieldAlert, Printer, Heart, MessageCircle, Send, Edit2, FileDown, Presentation
 } from 'lucide-react';
+import PptxGenJS from 'pptxgenjs';
 
 interface RecordsProps {
   patients: Patient[];
@@ -48,6 +49,7 @@ const FREQUENCIES = ['Daily (روزانه)', 'BD (دوبار در روز)', 'TID
 const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPatientId, clearTargetPatientId }) => {
   const [activeTab, setActiveTab] = useState<'New' | 'Recent' | 'All'>('New');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   
   // Handle Deep Linking
   useEffect(() => {
@@ -143,8 +145,6 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     setNewComment('');
   };
 
-  // ... (Other handlers: addDrugHistory, toggleROS, initiateOrder, confirmDrugPrescription, addOrder, updateOrderStatus, addProgressNote, handleTextChange, handleBlurLog remain largely the same)
-  
   const addDrugHistory = () => {
     if (!selectedPatient || !newDrug.name) return;
     const order: DrugOrder = {
@@ -290,6 +290,108 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
     }
   };
 
+  // --- Export Logic ---
+
+  const handleExportPDF = () => {
+    window.print();
+    setExportMenuOpen(false);
+  };
+
+  const handleExportPPTX = () => {
+    if (!selectedPatient) return;
+    
+    // Create PPTX
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_16x9';
+    pptx.rtlMode = true; // Enable Right-to-Left
+
+    // Slide 1: Title
+    const slide1 = pptx.addSlide();
+    slide1.background = { color: 'F1F5F9' };
+    slide1.addText(`پرونده پزشکی: ${selectedPatient.name}`, { x: '10%', y: '40%', w: '80%', fontSize: 32, bold: true, align: 'center', color: '1e293b', rtlMode: true });
+    slide1.addText(`سن: ${selectedPatient.age} | بخش: ${selectedPatient.ward} | تاریخ پذیرش: ${selectedPatient.admissionDate}`, { x: '10%', y: '55%', w: '80%', fontSize: 18, align: 'center', color: '64748b', rtlMode: true });
+
+    // Slide 2: Chief Complaint & Present Illness
+    const slide2 = pptx.addSlide();
+    slide2.addText("شکایت اصلی (CC) & شرح بیماری (PI)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide2.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+    
+    slide2.addText("شکایت اصلی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true });
+    slide2.addText(selectedPatient.chiefComplaint || 'ثبت نشده', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true });
+    
+    slide2.addText("شرح بیماری کنونی:", { x: 0.5, y: 3.0, fontSize: 14, bold: true, rtlMode: true });
+    slide2.addText(selectedPatient.presentIllness || 'ثبت نشده', { x: 0.5, y: 3.4, w: '90%', fontSize: 12, rtlMode: true });
+
+    // Slide 3: Histories
+    const slide3 = pptx.addSlide();
+    slide3.addText("سوابق پزشکی (Histories)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide3.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+    
+    const hData = [
+       [{ text: 'PMH' }, { text: (selectedPatient.pmh || []).join(', ') }],
+       [{ text: 'PSH' }, { text: (selectedPatient.psh || []).join(', ') }],
+       [{ text: 'FH' }, { text: (selectedPatient.fh || []).join(', ') }],
+       [{ text: 'SH' }, { text: selectedPatient.sh || '-' }],
+    ];
+    slide3.addTable(hData, { x: 0.5, y: 1.5, w: 9, colW: [1.5, 7.5], border: {pt: 1, color: 'e2e8f0'}, fontSize: 12, rtlMode: true });
+
+    // Slide 4: Vitals & General
+    const slide4 = pptx.addSlide();
+    slide4.addText("علائم حیاتی & ظاهر عمومی", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide4.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+    
+    slide4.addText("ظاهر عمومی:", { x: 0.5, y: 1.5, fontSize: 14, bold: true, rtlMode: true });
+    slide4.addText(selectedPatient.generalAppearance || '-', { x: 0.5, y: 1.9, w: '90%', fontSize: 12, rtlMode: true });
+
+    const vData = [
+       ['BP', selectedPatient.vitalSigns.bp], ['HR', selectedPatient.vitalSigns.hr],
+       ['RR', selectedPatient.vitalSigns.rr], ['Temp', selectedPatient.vitalSigns.temp],
+       ['SpO2', selectedPatient.vitalSigns.spo2], ['GCS', selectedPatient.vitalSigns.gcs]
+    ];
+    // Simple formatting for vitals
+    let vy = 3.0;
+    vData.forEach((v, i) => {
+        const xPos = i < 3 ? 0.5 + (i * 3) : 0.5 + ((i-3) * 3);
+        const yPos = i < 3 ? vy : vy + 1.5;
+        slide4.addText(v[0], { x: xPos, y: yPos, w: 2, fontSize: 12, color: '64748b', rtlMode: true });
+        slide4.addText(v[1] || '-', { x: xPos, y: yPos + 0.4, w: 2, fontSize: 18, bold: true, rtlMode: true });
+    });
+
+    // Slide 5: Physical Exam
+    const slide5 = pptx.addSlide();
+    slide5.addText("معاینات فیزیکی (Physical Exam)", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide5.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+
+    const peData = Object.entries(selectedPatient.physicalExam)
+        .filter(([_, val]) => typeof val === 'string' && val.trim() !== '')
+        .map(([key, val]) => [
+            { text: key }, 
+            { text: val }
+        ]);
+    
+    if(peData.length > 0) {
+        slide5.addTable(peData, { x: 0.5, y: 1.5, w: 9, colW: [2, 7], border: {pt: 1, color: 'e2e8f0'}, fontSize: 11, rtlMode: true });
+    } else {
+        slide5.addText("نکته قابل توجهی ثبت نشده است.", { x: 0.5, y: 2, fontSize: 12, rtlMode: true });
+    }
+
+    // Slide 6: Assessment & Plan
+    const slide6 = pptx.addSlide();
+    slide6.addText("تشخیص و درمان", { x: 0.5, y: 0.5, fontSize: 24, bold: true, color: '6366f1', rtlMode: true });
+    slide6.addShape(pptx.ShapeType.line, { x: 0.5, y: 1.0, w: '90%', h: 0, line: { color: '6366f1', width: 2 } });
+    
+    slide6.addText(`تشخیص نهایی: ${selectedPatient.primaryDiagnosis || 'نامشخص'}`, { x: 0.5, y: 1.5, fontSize: 16, bold: true, color: '10b981', rtlMode: true });
+    
+    slide6.addText("لیست مشکلات:", { x: 0.5, y: 2.2, fontSize: 14, bold: true, rtlMode: true });
+    selectedPatient.problemList.forEach((p, i) => {
+        slide6.addText(`• ${p}`, { x: 0.5, y: 2.6 + (i*0.4), fontSize: 12, rtlMode: true });
+    });
+
+    // Save
+    pptx.writeFile({ fileName: `Case_${selectedPatient.id}.pptx` });
+    setExportMenuOpen(false);
+  };
+
   const filterTabs = [
     { id: 'New', label: 'بیماران جدید', icon: UserPlus },
     { id: 'Recent', label: 'بیماران اخیر', icon: Clock },
@@ -409,13 +511,36 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
                             </div>
                         </div>
                         
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => setSelectedPatient(null)}
-                                className="lg:hidden p-2 bg-dark-700 rounded-lg text-gray-300"
-                            >
-                                <ChevronLeft />
-                            </button>
+                        <div className="flex gap-2 relative">
+                            {/* Export Dropdown Trigger */}
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                                    className="flex items-center gap-2 bg-dark-700 hover:bg-dark-600 text-white px-3 py-2 rounded-xl text-sm transition-colors border border-dark-600"
+                                >
+                                    <FileDown size={16} />
+                                    خروجی
+                                </button>
+                                {exportMenuOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-48 bg-dark-800 border border-dark-600 rounded-xl shadow-xl z-20 overflow-hidden">
+                                        <button 
+                                            onClick={handleExportPDF}
+                                            className="w-full text-right px-4 py-3 text-sm text-gray-300 hover:bg-dark-700 hover:text-white flex items-center gap-2"
+                                        >
+                                            <Printer size={16} />
+                                            نسخه چاپی / PDF (A4)
+                                        </button>
+                                        <button 
+                                            onClick={handleExportPPTX}
+                                            className="w-full text-right px-4 py-3 text-sm text-gray-300 hover:bg-dark-700 hover:text-white flex items-center gap-2 border-t border-dark-700"
+                                        >
+                                            <Presentation size={16} />
+                                            فایل پاورپوینت (PPTX)
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                             <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors">
                                 <Save size={16} />
                                 ذخیره تغییرات
@@ -446,7 +571,7 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
                     </div>
                     
                     {/* Content Area */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8 print:overflow-visible">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 print:hidden">
                         
                         {/* ---------------- SOCIAL TAB (NEW) ---------------- */}
                         {recordTab === 'Social' && (
@@ -1036,27 +1161,20 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
                         {/* ---------------- LOG TAB (AUDIT) ---------------- */}
                         {recordTab === 'Log' && (
                             // Add 'print:...' classes to style the log for printing
-                            <div className="space-y-4 print:fixed print:inset-0 print:bg-white print:z-[9999] print:p-8 print:h-full print:w-full print:overflow-visible">
-                                <div className="bg-dark-900 border border-dark-700 rounded-xl p-4 flex items-center justify-between print:bg-gray-100 print:border-gray-300">
+                            <div className="space-y-4 print:hidden">
+                                <div className="bg-dark-900 border border-dark-700 rounded-xl p-4 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <ShieldCheck className="text-green-500 print:text-black" size={24} />
+                                        <ShieldCheck className="text-green-500" size={24} />
                                         <div>
-                                            <h3 className="font-bold text-white text-sm print:text-black">ثبت وقایع (Audit Log) - پرونده {selectedPatient.name}</h3>
-                                            <p className="text-xs text-gray-400 print:text-gray-600">تمامی اقدامات انجام شده روی پرونده این بیمار به صورت خودکار ثبت و غیرقابل تغییر می‌باشد.</p>
+                                            <h3 className="font-bold text-white text-sm">ثبت وقایع (Audit Log) - پرونده {selectedPatient.name}</h3>
+                                            <p className="text-xs text-gray-400">تمامی اقدامات انجام شده روی پرونده این بیمار به صورت خودکار ثبت و غیرقابل تغییر می‌باشد.</p>
                                         </div>
                                     </div>
-                                    <button 
-                                        onClick={() => window.print()}
-                                        className="flex items-center gap-2 bg-dark-700 hover:bg-dark-600 text-white px-4 py-2 rounded-lg transition-colors print:hidden"
-                                    >
-                                        <Printer size={16} />
-                                        چاپ گزارش
-                                    </button>
                                 </div>
 
-                                <div className="bg-dark-800 rounded-xl border border-dark-700 overflow-hidden print:bg-white print:border-gray-300 print:shadow-none">
+                                <div className="bg-dark-800 rounded-xl border border-dark-700 overflow-hidden">
                                     <table className="w-full text-right text-sm">
-                                        <thead className="bg-dark-900 text-gray-400 print:bg-gray-200 print:text-black">
+                                        <thead className="bg-dark-900 text-gray-400">
                                             <tr>
                                                 <th className="p-4">زمان</th>
                                                 <th className="p-4">کاربر</th>
@@ -1064,17 +1182,17 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
                                                 <th className="p-4">جزئیات</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-dark-700 print:divide-gray-300">
+                                        <tbody className="divide-y divide-dark-700">
                                             {selectedPatient.auditLogs && selectedPatient.auditLogs.length > 0 ? (
                                                 selectedPatient.auditLogs.map(log => (
-                                                    <tr key={log.id} className="hover:bg-dark-700/50 print:text-black">
-                                                        <td className="p-4 font-mono text-gray-400 dir-ltr text-right print:text-black">{log.timestamp}</td>
+                                                    <tr key={log.id} className="hover:bg-dark-700/50">
+                                                        <td className="p-4 font-mono text-gray-400 dir-ltr text-right">{log.timestamp}</td>
                                                         <td className="p-4">
-                                                            <div className="font-bold text-white print:text-black">{log.user}</div>
-                                                            <div className="text-[10px] text-gray-500 print:text-gray-600">{log.role}</div>
+                                                            <div className="font-bold text-white">{log.user}</div>
+                                                            <div className="text-[10px] text-gray-500">{log.role}</div>
                                                         </td>
-                                                        <td className="p-4 text-accent-blue print:text-black font-bold">{log.action}</td>
-                                                        <td className="p-4 text-gray-300 print:text-black">{log.details}</td>
+                                                        <td className="p-4 text-accent-blue font-bold">{log.action}</td>
+                                                        <td className="p-4 text-gray-300">{log.details}</td>
                                                     </tr>
                                                 ))
                                             ) : (
@@ -1089,6 +1207,81 @@ const Records: React.FC<RecordsProps> = ({ patients, setPatients, user, targetPa
                                 </div>
                             </div>
                         )}
+                        
+                        {/* --- Hidden Printable Area (Full Report) --- */}
+                        <div className="hidden print:block text-black bg-white p-8 space-y-6 dir-rtl">
+                            <div className="text-center border-b-2 border-black pb-4 mb-6">
+                                <h1 className="text-3xl font-bold">پرونده پزشکی بیمارستان</h1>
+                                <div className="flex justify-between mt-4 text-sm font-mono">
+                                    <span>بیمار: {selectedPatient.name}</span>
+                                    <span>پرونده: {selectedPatient.id}</span>
+                                    <span>تاریخ چاپ: {new Date().toLocaleDateString('fa-IR')}</span>
+                                </div>
+                            </div>
+
+                            <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">شکایت اصلی & شرح حال</h2>
+                                <p><strong>CC:</strong> {selectedPatient.chiefComplaint}</p>
+                                <p className="mt-2 text-justify"><strong>PI:</strong> {selectedPatient.presentIllness}</p>
+                            </section>
+
+                            <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">سوابق (Histories)</h2>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div><strong>PMH:</strong> {(selectedPatient.pmh || []).join(', ')}</div>
+                                    <div><strong>PSH:</strong> {(selectedPatient.psh || []).join(', ')}</div>
+                                    <div><strong>FH:</strong> {(selectedPatient.fh || []).join(', ')}</div>
+                                    <div><strong>DH:</strong> {selectedPatient.dh.map(d => `${d.name} (${d.dosage})`).join(', ')}</div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">علائم حیاتی</h2>
+                                <div className="grid grid-cols-6 gap-2 text-center text-sm">
+                                    <div className="border p-1">BP: {selectedPatient.vitalSigns.bp}</div>
+                                    <div className="border p-1">HR: {selectedPatient.vitalSigns.hr}</div>
+                                    <div className="border p-1">RR: {selectedPatient.vitalSigns.rr}</div>
+                                    <div className="border p-1">Temp: {selectedPatient.vitalSigns.temp}</div>
+                                    <div className="border p-1">SpO2: {selectedPatient.vitalSigns.spo2}</div>
+                                    <div className="border p-1">GCS: {selectedPatient.vitalSigns.gcs}</div>
+                                </div>
+                            </section>
+
+                             <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">معاینات فیزیکی</h2>
+                                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                                    {Object.entries(selectedPatient.physicalExam).map(([key, val]) => (
+                                        val ? <div key={key}><strong>{key}:</strong> {val}</div> : null
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">تشخیص و اقدامات</h2>
+                                <p><strong>تشخیص نهایی:</strong> {selectedPatient.primaryDiagnosis}</p>
+                                <div className="mt-2">
+                                    <strong>لیست مشکلات:</strong> {(selectedPatient.problemList || []).join(', ')}
+                                </div>
+                                <div className="mt-4">
+                                    <strong>دستورات پزشک:</strong>
+                                    <ul className="list-disc pr-5 mt-1 text-sm">
+                                        {selectedPatient.orders.map(o => (
+                                            <li key={o.id}>{o.type}: {o.name} {o.dosage ? `(${o.dosage})` : ''} - {o.status}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h2 className="text-xl font-bold border-b border-gray-400 mb-2">سیر بیماری</h2>
+                                {selectedPatient.progressNotes.map(n => (
+                                    <div key={n.id} className="mb-2 text-sm border-b border-gray-100 pb-1">
+                                        <span className="text-gray-500 ml-2">{n.date}:</span>
+                                        <span>{n.note}</span>
+                                    </div>
+                                ))}
+                            </section>
+                        </div>
                     </div>
                 </>
             ) : (
